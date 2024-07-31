@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import LoginScreen from './App'; // Certifique-se de que o caminho está correto
-import RegisterScreen from './screens/RegisterScreen'; // Certifique-se de que o caminho está correto
+import LoginScreen from './src/screens/LoginScreen'; // Ajuste o caminho conforme necessário
+import RegisterScreen from './src/screens/RegisterScreen'; // Ajuste o caminho conforme necessário
+import WelcomeScreen from './src/screens/Welcome'; // Ajuste o caminho conforme necessário
 
 const Stack = createNativeStackNavigator();
 
-export default function Routes() {
+export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -16,6 +17,7 @@ export default function Routes() {
       >
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

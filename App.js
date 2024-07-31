@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Image, Text, TextInput, TouchableOpacity } from 'react-native';
 import logoImage from './assets/ilustrationOne.png';
 import RegisterScreen from './src/screens/RegisterScreen'; // Verifique o caminho correto
+import WelcomeScreen from './src/screens/Welcome'; 
 
 // Tela de Login
 function LoginScreen({ navigation }) {
@@ -67,6 +68,7 @@ export default function App() {
       >
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "TCC",
-    "slug": "TCC",
+    "name": "AuxiliaryGlasses",
+    "slug": "AuxiliaryGlasses",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/CP-AG.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
