@@ -1,8 +1,9 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Image, Text, TextInput, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Image, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import axios from 'axios';
 import logoImage from './assets/ilustrationOne.png';
 import RegisterScreen from './src/screens/RegisterScreen'; // Verifique o caminho correto
 import WelcomeScreen from './src/screens/Welcome'; 
@@ -12,9 +13,22 @@ function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  function handleSignIn() {
-    const data = { email, password };
-    console.log(data);
+  async function handleSignIn() {
+    try {
+      // Requisição de login para o backend
+      const response = await axios.post('http://192.168.1.100:3000/login', {
+        email,
+        password,
+      });
+
+      if (response.status === 200) {
+        Alert.alert('Sucesso', 'Login bem-sucedido');
+        // Navegar para a tela de boas-vindas após o login bem-sucedido
+        navigation.navigate('Welcome');
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Credenciais inválidas');
+    }
   }
 
   return (
