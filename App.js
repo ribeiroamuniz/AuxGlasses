@@ -16,9 +16,9 @@ function LoginScreen({ navigation }) {
   async function handleSignIn() {
     try {
       // Requisição de login para o backend
-      const response = await axios.post('http://192.168.1.100:3000/login', {
+      const response = await axios.post('http://192.168.3.8:3001/api/login', {
         email,
-        password,
+        senha: password,
       });
 
       if (response.status === 200) {
@@ -27,7 +27,7 @@ function LoginScreen({ navigation }) {
         navigation.navigate('Welcome');
       }
     } catch (error) {
-      Alert.alert('Erro', 'Credenciais inválidas');
+      Alert.alert('Erro', error.response?.data?.message || 'Erro desconhecido');
     }
   }
 

@@ -1,215 +1,92 @@
 const express = require('express');
-const mysql = require('mysql2');
-
+const mysql = require('mysql');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const app = express();
-app.use(express.json()); // Para permitir o parsing de JSON no corpo das requisições
+const port = 3001;
 
-// Configuração da conexão com o banco de dados
+app.use(express.json());
+
+// Configuração do banco de dados
 const connection = mysql.createConnection({
-  host: '127.0.0.1',
+  host: '192.168.3.8',
   user: 'guigui',
   password: 'teste@123',
   database: 'auxglasses'
 });
 
-// Conectar ao banco de dados
 connection.connect(err => {
   if (err) {
-    console.error('Erro ao conectar ao banco de dados: ' + err.stack);
+    console.error('Erro ao conectar ao banco de dados:', err);
     return;
   }
-  console.log('Conectado ao banco de dados como ID ' + connection.threadId);
+  console.log('Conectado ao banco de dados.');
 });
 
-// Rotas para Usuários
+// Endpoint de teste para a raiz
+app.get('/', (req, res) => {
+  res.send('Servidor funcionando corretamente.');
+});
 
-// Criar um novo usuário
-app.post('/usuarios', (req, res) => {
-  const { email, data_nascimento, nome } = req.body;
+// Endpoint de cadastro de usuário
+app.post('/api/register', (req, res) => {
+  const { nome, email, senha, endereco, data_nascimento } = req.body;
 
-  const query = 'INSERT INTO usuario (email, data_nascimento, nome) VALUES (?, ?, ?)';
-  connection.query(query, [email, data_nascimento, nome], (err, results) => {
+  bcrypt.hash(senha, 10, (err, hashedPassword) => {
     if (err) {
-      console.error('Erro ao inserir usuário: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao inserir usuário' });
-      return;
+      console.error('Erro ao criptografar a senha:', err);
+      return res.status(500).json({ error: 'Erro ao criptografar a senha.' });
     }
-    res.status(201).json({ id: results.insertId });
+
+    connection.query(
+      'INSERT INTO usuario (nome, email, senha, endereco, data_nascimento) VALUES (?, ?, ?, ?, ?)',
+      [nome, email, hashedPassword, endereco, data_nascimento],
+      (error, results) => {
+        if (error) {
+          console.error('Erro ao registrar o usuário:', error);
+          return res.status(500).json({ error: 'Erro ao registrar o usuário.' });
+        }
+        res.status(201).json({ message: 'Usuário registrado com sucesso!' });
+      }
+    );
   });
 });
 
-// Criar um novo usuário (adicionando a nova rota)
-app.post('/adicionarUsuario', (req, res) => {
-  const { email, data_nascimento, nome } = req.body;
+// Endpoint de login de usuário
+app.post('/api/login', (req, res) => {
+  const { email, senha } = req.body;
+  console.log('Recebido no login:', { email, senha });
 
-  const query = 'INSERT INTO usuario (email, data_nascimento, nome) VALUES (?, ?, ?)';
-  connection.query(query, [email, data_nascimento, nome], (err, results) => {
-    if (err) {
-      console.error('Erro ao inserir usuário: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao inserir usuário' });
-      return;
-    }
-    res.status(201).json({ id: results.insertId });
-  });
-});
-
-// Ler todos os usuários
-app.get('/usuarios', (req, res) => {
-  const query = 'SELECT * FROM usuario';
-  connection.query(query, (err, results) => {
-    if (err) {
-      console.error('Erro ao buscar usuários: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao buscar usuários' });
-      return;
-    }
-    res.json(results);
-  });
-});
-
-// Ler um usuário por ID
-app.get('/usuarios/:id', (req, res) => {
-  const { id } = req.params;
-  const query = 'SELECT * FROM usuario WHERE userid = ?';
-  connection.query(query, [id], (err, results) => {
-    if (err) {
-      console.error('Erro ao buscar usuário: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao buscar usuário' });
-      return;
+  connection.query('SELECT * FROM usuario WHERE email = ?', [email], (error, results) => {
+    if (error) {
+      console.error('Erro ao buscar o usuário:', error);
+      return res.status(500).json({ error: 'Erro ao buscar o usuário.' });
     }
     if (results.length === 0) {
-      res.status(404).json({ error: 'Usuário não encontrado' });
-      return;
+      console.log('Usuário não encontrado!');
+      return res.status(401).json({ message: 'Usuário não encontrado!' });
     }
-    res.json(results[0]);
+    const user = results[0];
+
+    console.log('Senha armazenada:', user.senha);
+
+    bcrypt.compare(senha, user.senha, (err, isMatch) => {
+      if (err) {
+        console.error('Erro ao comparar a senha:', err);
+        return res.status(500).json({ error: 'Erro ao comparar a senha.' });
+      }
+      console.log('Senha corresponde:', isMatch);
+
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Senha incorreta!' });
+      }
+      const token = jwt.sign({ id: user.userid }, 'seu_segredo', { expiresIn: '1h' });
+      console.log('Login bem-sucedido, token gerado:', token);
+      res.json({ token });
+    });
   });
 });
 
-// Atualizar um usuário por ID
-app.put('/usuarios/:id', (req, res) => {
-  const { id } = req.params;
-  const { email, data_nascimento, nome } = req.body;
-
-  const query = 'UPDATE usuario SET email = ?, data_nascimento = ?, nome = ? WHERE userid = ?';
-  connection.query(query, [email, data_nascimento, nome, id], (err, results) => {
-    if (err) {
-      console.error('Erro ao atualizar usuário: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao atualizar usuário' });
-      return;
-    }
-    if (results.affectedRows === 0) {
-      res.status(404).json({ error: 'Usuário não encontrado' });
-      return;
-    }
-    res.json({ message: 'Usuário atualizado com sucesso' });
-  });
-});
-
-// Deletar um usuário por ID
-app.delete('/usuarios/:id', (req, res) => {
-  const { id } = req.params;
-  const query = 'DELETE FROM usuario WHERE userid = ?';
-  connection.query(query, [id], (err, results) => {
-    if (err) {
-      console.error('Erro ao deletar usuário: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao deletar usuário' });
-      return;
-    }
-    if (results.affectedRows === 0) {
-      res.status(404).json({ error: 'Usuário não encontrado' });
-      return;
-    }
-    res.json({ message: 'Usuário deletado com sucesso' });
-  });
-});
-
-// Rotas para Dispositivos
-
-// Criar um novo dispositivo
-app.post('/dispositivos', (req, res) => {
-  const { oculos_id, codigo } = req.body;
-
-  const query = 'INSERT INTO dispositivo (oculos_id, codigo) VALUES (?, ?)';
-  connection.query(query, [oculos_id, codigo], (err, results) => {
-    if (err) {
-      console.error('Erro ao inserir dispositivo: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao inserir dispositivo' });
-      return;
-    }
-    res.status(201).json({ id: results.insertId });
-  });
-});
-
-// Ler todos os dispositivos
-app.get('/dispositivos', (req, res) => {
-  const query = 'SELECT * FROM dispositivo';
-  connection.query(query, (err, results) => {
-    if (err) {
-      console.error('Erro ao buscar dispositivos: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao buscar dispositivos' });
-      return;
-    }
-    res.json(results);
-  });
-});
-
-// Ler um dispositivo por ID
-app.get('/dispositivos/:id', (req, res) => {
-  const { id } = req.params;
-  const query = 'SELECT * FROM dispositivo WHERE oculos_id = ?';
-  connection.query(query, [id], (err, results) => {
-    if (err) {
-      console.error('Erro ao buscar dispositivo: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao buscar dispositivo' });
-      return;
-    }
-    if (results.length === 0) {
-      res.status(404).json({ error: 'Dispositivo não encontrado' });
-      return;
-    }
-    res.json(results[0]);
-  });
-});
-
-// Atualizar um dispositivo por ID
-app.put('/dispositivos/:id', (req, res) => {
-  const { id } = req.params;
-  const { codigo } = req.body;
-
-  const query = 'UPDATE dispositivo SET codigo = ? WHERE oculos_id = ?';
-  connection.query(query, [codigo, id], (err, results) => {
-    if (err) {
-      console.error('Erro ao atualizar dispositivo: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao atualizar dispositivo' });
-      return;
-    }
-    if (results.affectedRows === 0) {
-      res.status(404).json({ error: 'Dispositivo não encontrado' });
-      return;
-    }
-    res.json({ message: 'Dispositivo atualizado com sucesso' });
-  });
-});
-
-// Deletar um dispositivo por ID
-app.delete('/dispositivos/:id', (req, res) => {
-  const { id } = req.params;
-  const query = 'DELETE FROM dispositivo WHERE oculos_id = ?';
-  connection.query(query, [id], (err, results) => {
-    if (err) {
-      console.error('Erro ao deletar dispositivo: ' + err.stack);
-      res.status(500).json({ error: 'Erro ao deletar dispositivo' });
-      return;
-    }
-    if (results.affectedRows === 0) {
-      res.status(404).json({ error: 'Dispositivo não encontrado' });
-      return;
-    }
-    res.json({ message: 'Dispositivo deletado com sucesso' });
-  });
-});
-
-// Definir a porta do servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+app.listen(port, () => {
+  console.log(`Backend rodando na porta ${port}`);
 });

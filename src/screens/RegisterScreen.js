@@ -13,7 +13,7 @@ const RegisterScreen = ({ navigation }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isProhibited, setIsProhibited] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     // Verificar se todos os campos estão preenchidos
     if (!name || !birthDate || !cpf || !email || !password || !confirmPassword) {
       setErrorMessage('Todos os campos são obrigatórios.');
@@ -38,9 +38,34 @@ const RegisterScreen = ({ navigation }) => {
       return;
     }
 
-    // Se tudo estiver correto, navega para a tela Welcome
-    setIsProhibited(false);
-    navigation.navigate('Welcome');
+    // Se tudo estiver correto, envia os dados para o backend
+    try {
+      const response = await fetch('http://192.168.3.8:3001/api/register', { // Ajuste a URL conforme necessário
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nome: name,
+          email: email,
+          senha: password,
+          endereco: cpf, // Adapte conforme necessário
+          data_nascimento: birthDate
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        // Registro bem-sucedido
+        navigation.navigate('Welcome');
+      } else {
+        // Exibe mensagem de erro
+        setErrorMessage(result.message || 'Erro desconhecido.');
+      }
+    } catch (error) {
+      setErrorMessage('Erro na conexão com o servidor.');
+      console.error('Erro na conexão com o servidor:', error);
+    }
   };
 
   const isValidDate = (dateString) => {
@@ -104,7 +129,7 @@ const RegisterScreen = ({ navigation }) => {
         placeholder="Data de Nascimento (DD/MM/YYYY)"
         placeholderTextColor="#aaa"
         keyboardType="numeric"
-        maxLength={10} // Limita o campo a 10 caracteres
+        maxLength={10}
       />
       <TextInput
         style={styles.input}
